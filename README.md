@@ -7,10 +7,8 @@ A NestJS-based currency converter application that fetches exchange rates from t
 ## Table of Contents
 
 - [Features](#features)
-- [Task Description](#task-description)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Configuration](#configuration)
 - [Running the Application](#running-the-application)
   - [Using Docker Compose](#using-docker-compose)
   - [Running Locally Without Docker](#running-locally-without-docker)
@@ -87,7 +85,7 @@ Create a Node.js application that serves as a currency converter, fetching excha
 
 ## Prerequisites
 
-- **Docker**: You need ot have Docker installed to run application.
+- **Docker**: You need to have Docker installed to run the application.
 
 ---
 
@@ -99,15 +97,6 @@ Create a Node.js application that serves as a currency converter, fetching excha
    git clone https://github.com/geranton93/mono-test
    cd mono-test
    ```
-
----
-
-**Notes**:
-
-- Ensure that the environment variable names match exactly as they are used in the application configuration.
-- The variable names use double underscores (e.g., `redis__host`), so your configuration code should access these variables accordingly.
-- Since `NODE_ENV` is set to `test`, make sure your application handles this environment appropriately.
-- If you are using Docker Compose, the Redis host should be set to `redis` as specified.
 
 ---
 
@@ -152,17 +141,19 @@ The application includes a `Dockerfile` and `docker-compose.yml` for easy setup 
      docker-compose up redis --build
      ```
 
-2. **Run the Application**
+2. **Install Dependencies**
 
-  ```bash
-    npm i
-  ```
+   ```bash
+   npm i
+   ```
 
-  ```bash
-    npm run start
-  ```
+3. **Run the Application**
 
-3. **Access the Application**
+   ```bash
+   npm run start
+   ```
+
+4. **Access the Application**
 
    - **API Endpoint**: `http://localhost:3000`
    - **Swagger UI**: `http://localhost:3000/api`
@@ -208,20 +199,6 @@ npm run test:e2e
 
 This command will execute tests located in the `test` directory, simulating real user interactions with the application.
 
-### Important Notes on Testing
-
-- **Cleaning Redis Before Tests**: The tests automatically clean the Redis cache before running to ensure a consistent testing environment.
-- **Environment Variables**: The tests use the same `.env` file as the application. Ensure all necessary environment variables are set.
-- **Mocking External Services**: The tests mock external API calls (e.g., Monobank API) to avoid relying on external services during testing.
-- **Redis Container for Tests**: If you're using Docker Compose, ensure the Redis container is running before executing tests:
-  ```bash
-  docker-compose up -d redis
-  ```
-- **Test Scripts in `package.json`**:
-  - `"test"`: Runs unit tests.
-  - `"test:e2e"`: Runs end-to-end tests.
-  - `"test:cov"`: Runs tests and generates a coverage report.
-
 ---
 
 ## API Documentation
@@ -243,6 +220,19 @@ The Swagger UI provides detailed information about the API endpoints, request pa
 **Headers**:
 
 - `Content-Type: application/json`
+
+**cURL Command**:
+
+```bash
+curl -X POST \
+  http://localhost:3000/currency/convert \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "from": "USD",
+        "to": "EUR",
+        "amount": 100
+      }'
+```
 
 **Request Body**:
 
