@@ -66,8 +66,8 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
+    await flushRedis();
     await app.close();
-
     const redisClient = (cacheManager.store as any).getClient();
     await redisClient.quit();
   });
