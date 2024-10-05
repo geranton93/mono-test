@@ -40,18 +40,39 @@ export class CurrencyService {
     fromCode: number,
     toCode: number,
   ): number {
+    // Handle case when fromCode and toCode are the same
+    if (fromCode === toCode) {
+      this.logger.log('From and to currency codes are the same. Rate is 1.');
+      return 1;
+    }
+
     // Try to find direct rate
     const directRate = exchangeRates.find(
       (rate) =>
         rate.currencyCodeA === fromCode && rate.currencyCodeB === toCode,
     );
 
-    if (directRate && (directRate.rateBuy || directRate.rateCross)) {
-      const rate = directRate.rateCross || directRate.rateBuy;
-      this.logger.log(
-        `Using direct rate from ${fromCode} to ${toCode}: ${rate}`,
-      );
-      return rate;
+    if (directRate) {
+      let rate: number;
+
+      if (directRate.rateCross) {
+        rate = directRate.rateCross;
+      } else if (fromCode === 980 && directRate.rateSell) {
+        rate = 1 / directRate.rateSell;
+      } else if (fromCode === 980 && directRate.rateBuy) {
+        rate = 1 / directRate.rateBuy;
+      } else if (directRate.rateBuy) {
+        rate = directRate.rateBuy;
+      } else if (directRate.rateSell) {
+        rate = directRate.rateSell;
+      }
+
+      if (rate) {
+        this.logger.log(
+          `Using direct rate from ${fromCode} to ${toCode}: ${rate}`,
+        );
+        return rate;
+      }
     }
 
     // Try to find inverse rate
@@ -60,41 +81,64 @@ export class CurrencyService {
         rate.currencyCodeA === toCode && rate.currencyCodeB === fromCode,
     );
 
-    if (inverseRate && (inverseRate.rateSell || inverseRate.rateCross)) {
-      const inverseRateValue = inverseRate.rateCross || inverseRate.rateSell;
-      const rate = 1 / inverseRateValue;
-      this.logger.log(
-        `Using inverse rate from ${toCode} to ${fromCode}, inverted rate: ${rate}`,
-      );
-      return rate;
+    if (inverseRate) {
+      let rate: number;
+
+      if (inverseRate.rateCross) {
+        rate = 1 / inverseRate.rateCross;
+      } else if (toCode === 980 && inverseRate.rateBuy) {
+        // Converting from another currency to UAH
+        rate = inverseRate.rateBuy;
+      } else if (toCode === 980 && inverseRate.rateSell) {
+        rate = inverseRate.rateSell;
+      } else if (inverseRate.rateSell) {
+        rate = 1 / inverseRate.rateSell;
+      } else if (inverseRate.rateBuy) {
+        rate = 1 / inverseRate.rateBuy;
+      }
+
+      if (rate) {
+        this.logger.log(
+          `Using inverse rate from ${toCode} to ${fromCode}, inverted rate: ${rate}`,
+        );
+        return rate;
+      }
     }
 
     // Try using UAH as intermediary
     const baseCurrencyCode = 980; // UAH
 
-    const fromToBase = exchangeRates.find(
+    // From 'from' currency to UAH
+    const fromToBaseRate = exchangeRates.find(
       (rate) =>
         rate.currencyCodeA === fromCode &&
         rate.currencyCodeB === baseCurrencyCode,
     );
 
-    const baseToTarget = exchangeRates.find(
+    // From 'to' currency to UAH
+    const toToBaseRate = exchangeRates.find(
       (rate) =>
-        rate.currencyCodeA === baseCurrencyCode &&
-        rate.currencyCodeB === toCode,
+        rate.currencyCodeA === toCode &&
+        rate.currencyCodeB === baseCurrencyCode,
     );
 
-    if (
-      fromToBase &&
-      baseToTarget &&
-      (fromToBase.rateBuy || fromToBase.rateCross) &&
-      (baseToTarget.rateSell || baseToTarget.rateCross)
-    ) {
-      const rateBuy = fromToBase.rateCross || fromToBase.rateBuy;
-      const rateSell = baseToTarget.rateCross || baseToTarget.rateSell;
-      const rate = rateBuy / rateSell;
-      this.logger.log(`Using UAH as intermediary, rate: ${rate}`);
-      return rate;
+    if (fromToBaseRate && toToBaseRate) {
+      // From 'from' currency to UAH
+      const rateFromToBase =
+        fromToBaseRate.rateCross ||
+        fromToBaseRate.rateBuy ||
+        fromToBaseRate.rateSell;
+
+      // From 'to' currency to UAH (will invert)
+      const rateToToBase =
+        toToBaseRate.rateCross || toToBaseRate.rateSell || toToBaseRate.rateBuy;
+
+      if (rateFromToBase && rateToToBase) {
+        const rateBaseToTo = 1 / rateToToBase;
+        const rate = rateFromToBase * rateBaseToTo;
+        this.logger.log(`Using UAH as intermediary, rate: ${rate}`);
+        return rate;
+      }
     }
 
     this.logger.error(
